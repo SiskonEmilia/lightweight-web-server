@@ -8,7 +8,8 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
-ThreadPool::ThreadPool(int thread_size, int max_queue_size) : 
+template<typename T>
+ThreadPool<T>::ThreadPool(int thread_size, int max_queue_size) : 
     max_queue_size(max_queue_size), thread_size(thread_size),
     started(0), shutdown_(0) {
 
@@ -37,12 +38,14 @@ ThreadPool::ThreadPool(int thread_size, int max_queue_size) :
     }
 }
 
-ThreadPool::~ThreadPool() {
+template<typename T>
+ThreadPool<T>::~ThreadPool() {
     if (!shutdown_)
         shutdown(true);
 }
 
-bool ThreadPool::append(std::shared_ptr<void> arg, std::function<void(std::shared_ptr<void>)> fun) {
+template<typename T>
+bool ThreadPool<T>::append(std::shared_ptr<T> arg, std::function<void(std::shared_ptr<T>)> fun) {
     // 如果已经停机，则不接受更多的链接
     if (shutdown_) {
         cout << "Failed to append task: ThreadPool has been shutdown." << endl;
@@ -62,7 +65,8 @@ bool ThreadPool::append(std::shared_ptr<void> arg, std::function<void(std::share
     return true;
 }
 
-void ThreadPool::shutdown(bool graceful) {
+template<typename T>
+void ThreadPool<T>::shutdown(bool graceful) {
     {
         MutexLockGuard guard(this->mutex);
         // 如果已经在停机状态，不需额外操作
@@ -83,7 +87,8 @@ void ThreadPool::shutdown(bool graceful) {
     }
 }
 
-void *ThreadPool::worker(void *args) {
+template<typename T>
+void *ThreadPool<T>::worker(void *args) {
     ThreadPool *pool = static_cast<ThreadPool *>(args);
     // 若线程池指针无效，则立即停止执行
     if (pool == nullptr)
@@ -96,10 +101,11 @@ void *ThreadPool::worker(void *args) {
     return NULL;
 }
 
-void ThreadPool::run() {
+template<typename T>
+void ThreadPool<T>::run() {
     // EventLoop
     while (true) {
-        ThreadTask requestTask;
+        ThreadTask<T> requestTask;
         {
             // 此作用域用来约束互斥锁范围
             MutexLockGuard guard(this->mutex);

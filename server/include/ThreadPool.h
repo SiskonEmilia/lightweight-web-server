@@ -11,16 +11,18 @@
 #include "MutexLock.h"
 #include "Condition.h"
 
+template<typename T>
 struct ThreadTask {
 
-    std::function<void(std::shared_ptr<void>)> process; // 线程接受的函数
-    std::shared_ptr<void> arg;                          // 该函数接受的参数
+    std::function<void(std::shared_ptr<T>)> process; // 线程接受的函数
+    std::shared_ptr<T> arg;                          // 该函数接受的参数表指针（若为单参数，则可为参数指针）
 
     ThreadTask() {}
-    ThreadTask(std::shared_ptr<void>& arg, std::function<void(std::shared_ptr<void>)>& process):
+    ThreadTask(std::shared_ptr<T>& arg, std::function<void(std::shared_ptr<T>)>& process):
         arg(arg), process(process) { } 
 };
 
+template<typename T>
 class ThreadPool {
 
     // 互斥锁
@@ -34,7 +36,7 @@ class ThreadPool {
     int shutdown_;
     // 资源池与请求队列
     std::vector<pthread_t> threads;
-    std::list<ThreadTask> request_queue;
+    std::list<ThreadTask<T>> request_queue;
 
     static void *worker(void *args);
     
@@ -58,7 +60,7 @@ public:
 
     ~ThreadPool();
 
-    bool append(std::shared_ptr<void> arg, std::function<void(std::shared_ptr<void>)> fun);
+    bool append(std::shared_ptr<T> arg, std::function<void(std::shared_ptr<T>)> fun);
 
     void shutdown(bool graceful);
 };
