@@ -1,42 +1,51 @@
+/**
+ * 仅头文件的互斥锁封装和其 RAII 管理类
+*/
+
 #pragma once
 
 #include <pthread.h>
 
 #include "base/Uncopyable.h"
 
+/**
+ * @brief 封装互斥锁
+*/
 class MutexLock : private Uncopyable {
 
-    pthread_mutex_t mutex_;
+    pthread_mutex_t raw_mutex;
 
 public:
     MutexLock() {
-        pthread_mutex_init(&mutex_, nullptr);
+        pthread_mutex_init(&raw_mutex, nullptr);
     }
     ~MutexLock() {
-        pthread_mutex_destroy(&mutex_);
+        pthread_mutex_destroy(&raw_mutex);
     }
     void lock() {
-        pthread_mutex_lock(&mutex_);
+        pthread_mutex_lock(&raw_mutex);
     }
     void unlock() {
-        pthread_mutex_unlock(&mutex_);
+        pthread_mutex_unlock(&raw_mutex);
     }
     pthread_mutex_t* getMutex() {
-        return &mutex_;
+        return &raw_mutex;
     }
 };
 
-// RAII mutex lock manager class
-class MutexLockAuto : private Uncopyable {
+/**
+ * @brief 以 RAII 手法进行互斥锁加解锁管理
+*/
+class MutexLockGuard : private Uncopyable {
 
-    MutexLock &raw_mutex;
+    MutexLock &mutex;
 
 public:
-    explicit MutexLockAuto(MutexLock &raw_mutex) : raw_mutex(raw_mutex) {
-        raw_mutex.lock();
+    explicit MutexLockGuard(MutexLock &mutex) : mutex(mutex) {
+        mutex.lock();
     }
 
-    ~MutexLockAuto() {
-        raw_mutex.unlock();
+    ~MutexLockGuard() {
+        mutex.unlock();
     }
 };
