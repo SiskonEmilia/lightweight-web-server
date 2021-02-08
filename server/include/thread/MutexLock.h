@@ -1,12 +1,8 @@
-/**
- * 仅头文件的互斥锁封装和其 RAII 管理类
-*/
-
 #pragma once
 
 #include <pthread.h>
 
-#include "base/Uncopyable.h"
+#include "utils/Uncopyable.h"
 
 /**
  * @brief 封装互斥锁

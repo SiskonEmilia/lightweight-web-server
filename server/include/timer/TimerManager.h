@@ -4,15 +4,19 @@
 #include <vector>
 #include <memory>
 
-#include "Timer.h"
-#include "MutexLock.h"
+#include "timer/Timer.h"
+#include "thread/MutexLock.h"
 
 class TimerManager {
 
+    // 堆互斥锁
     MutexLock mutex;
     std::priority_queue<Timer::TimerSPtr, std::vector<Timer::TimerSPtr>, Timer::Later> timer_min_heap;
 
 public:
+    /**
+     * @brief 通过智能指针添加 timer，外部应只保存 weak_ptr，防止 timer 未被正常析构
+    */
     void append(Timer::TimerSPtr &timer) {
         // 由于多个线程都有可能重置定时器，因此需要加锁
         MutexLockGuard(this->mutex);

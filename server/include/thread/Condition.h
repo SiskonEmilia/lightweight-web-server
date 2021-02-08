@@ -6,8 +6,8 @@
 
 #include <pthread.h>
 
-#include "base/Uncopyable.h"
-#include "MutexLock.h"
+#include "utils/Uncopyable.h"
+#include "thread/MutexLock.h"
 
 class Condition : private Uncopyable{
 

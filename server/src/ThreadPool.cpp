@@ -2,7 +2,7 @@
 #include <pthread.h>
 #include <sys/prctl.h>
 
-#include "../include/ThreadPool.h"
+#include "thread/ThreadPool.h"
 
 using std::cout;
 using std::cerr;
@@ -71,7 +71,8 @@ void ThreadPool<T>::shutdown(bool graceful) {
         MutexLockGuard guard(this->mutex);
         // 如果已经在停机状态，不需额外操作
         if (shutdown_) {
-            cout << "Fail to shutdown: dumplicate shutdown." << endl;
+            cout << "Fail to shutdown: server has been shutdown." << endl;
+            // 进程退出时自动释放持有的文件符，无需手动释放
             return;
         }
 

@@ -7,9 +7,9 @@
 #include <memory>
 
 
-#include "base/Uncopyable.h"
-#include "MutexLock.h"
-#include "Condition.h"
+#include "utils/Uncopyable.h"
+#include "thread/MutexLock.h"
+#include "thread/Condition.h"
 
 template<typename T>
 struct ThreadTask {
