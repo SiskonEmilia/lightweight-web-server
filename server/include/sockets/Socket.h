@@ -1,6 +1,8 @@
 #pragma once
 
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/socket.h>
 #include <iostream>
 
 /**
@@ -34,5 +36,29 @@ public:
         } else if (socket_fd > 0) {
             this->socket_fd = socket_fd;
         }
+    }
+
+    /**
+     * @brief 设置参数 fd 为非阻塞状态（防止 ET 最后读完的时候阻塞）
+    */
+    void setNonBlocking() {
+        if (socket_fd <= 0) {
+            std::cout << "Socket: Failed to set non-blocking, invalid socket_fd." << std::endl;
+            return;
+        }
+        int new_opt = fcntl(socket_fd, F_GETFL) | O_NONBLOCK;
+        fcntl(socket_fd, F_SETFL, new_opt);
+    }
+
+    /**
+     * @brief 设置地址复用，方便重启
+    */
+    void setReuseable() {
+        if (socket_fd <= 0) {
+            std::cout << "Socket: Failed to set reuseable, invalid socket_fd." << std::endl;
+            return;
+        }
+        int opt = 1;
+        setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, (const void *)&opt, sizeof(opt));
     }
 };

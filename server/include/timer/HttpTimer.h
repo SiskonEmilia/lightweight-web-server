@@ -30,7 +30,7 @@ class HttpTimer : public Timer {
 
 public:
 
-    explicit HttpTimer(const time_t timeout, ConnectionSocket *socket) 
+    explicit HttpTimer(const time_t timeout, std::shared_ptr<ConnectionSocket> socket) 
         : Timer(timeout), socket(socket) { }
 
     /**

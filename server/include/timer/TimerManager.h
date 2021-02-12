@@ -17,7 +17,7 @@ public:
     /**
      * @brief 通过智能指针添加 timer，外部应只保存 weak_ptr，防止 timer 未被正常析构
     */
-    void append(Timer::TimerSPtr &timer) {
+    void append(Timer::TimerSPtr timer) {
         // 由于多个线程都有可能重置定时器，因此需要加锁
         MutexLockGuard(this->mutex);
         timer_min_heap.push(timer);

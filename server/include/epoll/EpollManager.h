@@ -21,10 +21,6 @@ class EpollManager : private Uncopyable {
 
     // 最多同时处理的 socket 数量
     static const int Max_Events;
-    // Keep-alive 时，仅允许单线程处理同一链接，触发后即屏蔽响应
-    static const __uint32_t Single_Time_Event;
-    // 【默认】非 Keep-alive 时，可以复用
-    static const __uint32_t Multi_Times_Event;
     #ifdef NULL_EVENT_NOT_ALLOWED
     // 在 Linux 2.6.9 以下版本，EPOLL_CTL_DEL 不允许传入 event 空指针
     static epoll_event empty_event;
@@ -41,6 +37,11 @@ class EpollManager : private Uncopyable {
     EpollManager();
 
 public:
+    // 【默认】仅允许单线程处理同一链接，触发后即屏蔽响应
+    static const __uint32_t Single_Time_Event;
+    // 对于监听 socket 可以复用（因为只有主线程处理连接请求）
+    static const __uint32_t Multi_Times_Event;
+    
     /**
      * @brief 获取实例，如无实例则创建实例
     */

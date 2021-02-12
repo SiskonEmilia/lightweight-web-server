@@ -47,7 +47,8 @@ int EpollManager::init(int max_events) {
     }
     epoll_fd = epoll_create(epoll_max_events);
     if (epoll_fd == -1) {
-        cerr << "EpollManager: Fail to create epoll instance" << endl;
+        cerr << "EpollManager: Fail to create epoll instance in file <"
+             << __FILE__ << "> "<< "at " << __LINE__  << endl;
         exit(-1);
     }
     std::shared_ptr<epoll_event> temp_events(new epoll_event[epoll_max_events], Utils::arrayDeleter<epoll_event>);
@@ -112,9 +113,15 @@ EpollManager::poll(HttpServer &server, int timeout) {
         cout << "EpollManager: Trying to use epoll without initializing. Call init() first." << endl;
         return {};
     }
+    if (timeout <= 0) {
+        cout << "EpollManager: Trying to set invalid timeout: " << timeout << endl;
+        return {};
+    }
     int event_count = epoll_wait(epoll_fd, events.get(), epoll_max_events, timeout);
     if (event_count < 0) {
-        cout << "EpollManager: epoll_wait() returned with error. ERRCODE: " << errno << endl;
+        cout << "EpollManager: epoll_wait() returned with error in file <"
+             << __FILE__ << "> "<< "at " << __LINE__  << endl
+             << "ERRCODE: " << errno << endl;
         exit(-1);
     }
 
@@ -124,12 +131,13 @@ EpollManager::poll(HttpServer &server, int timeout) {
 
         if (socket_fd == server.getListenSocketFd()) {
             // 有向监听端口发来的连接请求，创建连接
-            server.handleConnection();
+            server.handleConnection(timeout);
         } else {
             if (events.get()[i].events & (EPOLLERR | EPOLLRDHUP | EPOLLHUP)) {
                 // 出错/半关闭/无效的连接
                 server.removeConnection(events.get()[i].data.fd);
-                delFd(events.get()[i].data.fd);
+                // 下面这行由服务器代为完成
+                // delFd(events.get()[i].data.fd);
             } else {
                 connections.push_back(events.get()[i].data.fd);
             }

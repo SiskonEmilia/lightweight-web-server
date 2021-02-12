@@ -4,7 +4,6 @@ time_t Timer::current_time = 0;
 
 bool Timer::checkExpire() {
     // 不在此函数更新当前时间，以避免频繁的系统调用
-    MutexLockGuard(this->mutex);
     if (deleted) {
         return true;
     } else if (expired_time < current_time) {

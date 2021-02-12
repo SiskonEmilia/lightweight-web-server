@@ -6,15 +6,13 @@
 #include "thread/MutexLock.h"
 
 /**
- * @brief 线程安全的定时器基类，需定制派生类并配合 TimeManager 使用
+ * @brief 定时器基类，需定制派生类并配合 TimeManager 使用
  * 通过实现纯虚函数 handleExpire 来实现超时回调
 */
 class Timer {
 
     bool deleted;
     time_t expired_time;
-    // 互斥锁，或许应该换用轻量的自旋锁？
-    MutexLock mutex;
 
     /**
      * @brief 超时时调用的回调函数，派生类继承此函数来实现超时回调
@@ -63,10 +61,9 @@ public:
     virtual ~Timer() { }
 
     /**
-     * @brief 【线程安全】检查延迟删除状态并设置延迟删除
+     * @brief 检查延迟删除状态并设置延迟删除
     */
-    virtual bool checkAndSetDelete() { 
-        MutexLockGuard(this->mutex);
+    virtual bool checkAndSetDelete() {
         bool old_deleted = deleted;
         deleted = true;
         return old_deleted;
@@ -75,7 +72,7 @@ public:
     time_t getExpireTime() const { return expired_time; }
 
     /**
-     * @brief 【线程安全】返回定时器是否超时。同时，如果定时器超时且有效则执行回调函数
+     * @brief 返回定时器是否超时。同时，如果定时器超时且有效则执行回调函数
     */
     bool checkExpire();
 
@@ -98,7 +95,3 @@ public:
     */
     static bool later(const Timer& lhs, const Timer& rhs) { return lhs.expired_time > rhs.expired_time; }
 };
-
-/**
- * Timer 线程安全的重点在于，防止 Timer 正准备执行超时回调时，外部设置延迟删除
-*/
