@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <iostream>
 
 #include "timer/Timer.h"
 #include "sockets/ConnectionSocket.h"

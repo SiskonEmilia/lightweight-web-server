@@ -101,7 +101,15 @@ HttpRequestParser::parseRequestLine(char *temp_buffer, HttpRequest &http_request
     if (temp_buffer == nullptr || *temp_buffer != '/') {
         return Bad_Request;
     }
-    http_request.http_uri = std::string(temp_buffer);
+    {
+        auto url_ptr = Utils::urlDecode(std::string(temp_buffer));
+        http_request.http_path = url_ptr.get();
+    }
+    int query_start = http_request.http_path.find_last_of('?');
+    if (query_start != std::string::npos) {
+        http_request.http_query = http_request.http_path.substr(query_start + 1);
+        http_request.http_path  = http_request.http_path.substr(0, query_start);
+    }
 
     // 跳过所有连续的空格
     // next_part 现在指向 HTTP-Version
@@ -186,7 +194,6 @@ HttpRequestParser::parseRequest(char *buffer, int buffer_size,
     while (http_request.parse_state != Parse_Body && (line_state = 
         checkLine(buffer, start_index, buffer_size,
             temp_buffer, temp_buffer_index, temp_buffer_size)) == Line_OK) {
-        cout << "TB: " << temp_buffer << endl;
         if (http_request.parse_state == PARSE_STATE::Parse_Request_Line) {
             ret_code = parseRequestLine(temp_buffer, http_request);
             if (ret_code == Bad_Request) {
@@ -201,7 +208,6 @@ HttpRequestParser::parseRequest(char *buffer, int buffer_size,
         }
         temp_buffer_index = 0;
     }
-    cout << "PS: " <<  http_request.parse_state << endl;
     if (http_request.parse_state == Parse_Body) {
         ret_code = parseBody(buffer + start_index, buffer_size - start_index, http_request);
         return ret_code;

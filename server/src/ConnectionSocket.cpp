@@ -34,7 +34,6 @@ void ConnectionSocket::removeTimer() {
 void ConnectionSocket::expireHandler() {
     // 关闭 socket 文件符
     Socket::close();
-    cout << "Expire Event" << endl;
     // 通知服务器删除文件描述符
     server.removeConnection(getSocketFd());
 }

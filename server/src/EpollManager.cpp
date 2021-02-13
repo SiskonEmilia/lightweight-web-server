@@ -10,8 +10,9 @@ using std::endl;
 
 /* 初始化静态常量 */
 const int EpollManager::Max_Events = 8192;
-const __uint32_t EpollManager::Single_Time_Event = (EPOLLIN | EPOLLET | EPOLLONESHOT);
-const __uint32_t EpollManager::Multi_Times_Event = (EPOLLIN | EPOLLET);
+const __uint32_t EpollManager::Single_Time_Accept_Event = (EPOLLIN | EPOLLET | EPOLLONESHOT);
+const __uint32_t EpollManager::Multi_Times_Accept_Event = (EPOLLIN | EPOLLET);
+const __uint32_t EpollManager::Single_Time_Send_Event = (EPOLLOUT | EPOLLET | EPOLLONESHOT);
 
 /* 初始化静态非常量 */
 #ifdef NULL_EVENT_NOT_ALLOWED
@@ -64,7 +65,7 @@ int EpollManager::addFd(int socket_fd, __uint32_t events) {
         return -1;
     }
     epoll_event event;
-    event.events = Multi_Times_Event;
+    event.events = Multi_Times_Accept_Event;
     event.data.fd = socket_fd;
     int ret = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, socket_fd, &event);
     if (ret < 0) {

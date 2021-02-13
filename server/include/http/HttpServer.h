@@ -1,15 +1,31 @@
 #pragma once
 
+#include <vector>
+#include <regex>
+
 #include "sockets/ListenSocket.h"
 #include "thread/ThreadPool.h"
 #include "epoll/EpollManager.h"
 #include "timer/TimerManager.h"
+#include "http/HttpData.h"
 
 class HttpTimer;
 class ConnectionSocket;
 
 class HttpServer {
+public:
+    typedef std::function<void(HttpData&)> RequestCallback;
+    typedef struct ServeRule {
+        // 检查 path 是否合法的正则表达式【废弃】
+        // const static std::regex path_checker;
+        std::regex path;
+        HttpServer::RequestCallback callback;
+        ServeRule() = delete;
+        ServeRule(const std::regex &path, const HttpServer::RequestCallback &callback)
+            : path(path), callback(callback) { }
+    } ServeRule;
 
+private:
     enum {
         Default_Buffer_Size = 4096
     };
@@ -22,6 +38,18 @@ class HttpServer {
     std::shared_ptr<EpollManager> epoll_manager;
     // 当前存在的链接映射
     std::unordered_map<int, std::shared_ptr<ConnectionSocket>> connection_map;
+    // GET 方法的匹配规则表
+    std::vector<ServeRule> get_rules;
+    
+    /**
+     * @brief 默认的回调函数，发送 404 响应
+    */
+    static void defaultRequestCallback(HttpData &);
+    /**
+     * @brief 处理发送循环，发送到不能发为止
+     * @return 剩余需要发送的数据量
+    */
+    static int sendLoop(const int socket_fd, const char* buffer, int size_to_send);
 
 public:
     /**
@@ -46,6 +74,8 @@ public:
 
     void handleRequest(std::shared_ptr<ConnectionSocket> connection);
 
+    void handleSending(std::shared_ptr<ConnectionSocket> connection);
+
     std::shared_ptr<HttpTimer>
     createTimer(int timeout, int socket_fd);
 
@@ -53,5 +83,13 @@ public:
         return listen_socket.getSocketFd();
     }
 
-    void run(int thread_num, int max_queue_size, int timeout = 3000);
+    /**
+     * @brief 注册 GET 规则
+    */
+    void Get(const std::regex &path, const RequestCallback& callback);
+
+    /**
+     * @brief 开始运行服务器
+    */
+    void run(int thread_num = 8, int max_queue_size = 16384, int timeout = 3000);
 };

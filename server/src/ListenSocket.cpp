@@ -25,23 +25,32 @@ void ListenSocket::listen() {
         cout << "ListenSocket: Failed to start listening in file <"
              << __FILE__ << "> "<< "at " << __LINE__ << endl;
         exit(-1);
+    } else {
+        cout << "ListenSocket: Start listening at " 
+             << ip << ":" << port << endl;
     }
 }
 
 /**
  * @brief 按给定的 IP 地址和 端口号 初始化一个 listen socket
 */
-ListenSocket::ListenSocket(int port, const char *ip) {
+ListenSocket::ListenSocket(int port, const char *ip) : port(port) {
     // 清空地址结构体
     bzero(&served_addr, sizeof(served_addr));
     // 指定协议簇：TCP/IP
     served_addr.sin_family = AF_INET;
+    if (port < 1024 || port > 65535) {
+        cout << "ListenSocket: Invalid port, set to default value: 8080" << endl;
+        this->port = 8080;
+    }
     // 将 port 转化为大端形式
     served_addr.sin_port = htons(port);
     // 设置 IP 地址
     if (ip != nullptr) {
+        this->ip = std::string(ip);
         inet_pton(AF_INET, ip, &served_addr.sin_addr);
     } else {
+        this->ip = "0.0.0.0";
         served_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     }
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -62,9 +71,7 @@ ListenSocket::ListenSocket(int port, const char *ip) {
 */
 int ListenSocket::accept(ConnectionSocket &connection) const {
     int connection_fd = ::accept(getSocketFd(), nullptr, nullptr);
-    if (connection_fd < 0) {
-        cout << "ListenSocket: Failed to accept connection" << endl;
-    } else {
+    if (connection_fd > 0) {
         connection.setSocketFd(connection_fd);
     }
     return connection_fd;

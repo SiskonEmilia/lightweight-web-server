@@ -38,9 +38,12 @@ class EpollManager : private Uncopyable {
 
 public:
     // 【默认】仅允许单线程处理同一链接，触发后即屏蔽响应
-    static const __uint32_t Single_Time_Event;
+    static const __uint32_t Single_Time_Accept_Event;
     // 对于监听 socket 可以复用（因为只有主线程处理连接请求）
-    static const __uint32_t Multi_Times_Event;
+    static const __uint32_t Multi_Times_Accept_Event;
+    // 发送用 Event，单次触发
+    static const __uint32_t Single_Time_Send_Event;
+
     
     /**
      * @brief 获取实例，如无实例则创建实例

@@ -8,7 +8,7 @@
 #include "http/HttpRequestParser.h"
 #include "utils/Utils.h"
 
-#define DEBUG_MODE
+// #define DEBUG_MODE
 
 /**
  * 关于如何判定请求数据是否完整：
@@ -80,7 +80,8 @@ public:
     static const std::unordered_map<std::string, HTTP_HEADER> header_map;
     HTTP_VERSION http_version;
     HTTP_METHOD  http_method;
-    std::string  http_uri;
+    std::string  http_path;
+    std::string  http_query;
     std::string  http_body;
     int          http_content_length;
     std::unordered_map<HTTP_HEADER, std::string, Utils::EnumClassHash> http_headers;
@@ -90,7 +91,7 @@ public:
           temp_buffer(nullptr, Utils::arrayDeleter<char>),
           parse_state(HttpRequestParser::Parse_Request_Line),
           http_version(VERSION_NOT_SUPPORT), http_method(METHOD_NOT_SUPPORT),
-          http_uri(), http_body(), http_content_length(0), http_headers() {
+          http_path(), http_query(), http_body(), http_content_length(0), http_headers() {
         if (buffer_size <= 0) {
             // print warning message
             this->buffer_size = Default_Buffer_Size;

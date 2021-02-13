@@ -43,7 +43,8 @@ void HttpRequest::clear() {
     http_version = VERSION_NOT_SUPPORT;
     http_method = METHOD_NOT_SUPPORT;
     http_body.clear();
-    http_uri.clear();
+    http_path.clear();
+    http_query.clear();
     http_headers.clear();
     http_content_length = 0;
     buffer_index = 0;
@@ -55,7 +56,8 @@ std::ostream &operator<<(std::ostream &os, const HttpRequest &http_request) {
     ss << "Parsed Http_Request Information\n"
        << "Http version: " << http_request.http_version << "\n"
        << "Http method: " << http_request.http_method << "\n" 
-       << "Uri: " << http_request.http_uri << "\n"
+       << "Path: " << http_request.http_path << "\n"
+       << "Query: " << http_request.http_query << "\n"
        << "Body: " << http_request.http_body << "\n"
        << "Length: " << http_request.http_content_length << std::endl;
     os << ss.str() << std::endl;

@@ -1,5 +1,4 @@
-#ifndef UNCOPYABLE_H
-#define UNCOPYABLE_H
+#pragma once
 
 /**
  * @brief 避免派生类被拷贝或拷贝构造
@@ -14,5 +13,3 @@ private:
     Uncopyable(const Uncopyable &);
     Uncopyable &operator=(const Uncopyable &);
 };
-
-#endif

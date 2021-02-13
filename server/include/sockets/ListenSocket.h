@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <iostream>
+#include <string>
 #include <memory>
 
 #include "sockets/Socket.h"
@@ -18,7 +19,7 @@ class ListenSocket : public Socket{
 
     sockaddr_in served_addr;
     int port;
-    const char *ip;
+    std::string ip;
 
 public:
     /**
