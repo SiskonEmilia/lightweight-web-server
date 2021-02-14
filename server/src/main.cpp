@@ -1,10 +1,5 @@
-#include <functional>
-
 #include "http/HttpServer.h"
-#include "http/HttpData.h"
 #include "middleware/StaticFile.h"
-
-void testFunction(HttpData &data) {}
 
 int main() {
     HttpServer server;
