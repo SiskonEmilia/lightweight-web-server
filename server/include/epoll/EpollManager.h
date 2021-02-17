@@ -1,9 +1,7 @@
 #pragma once
 
 #include <sys/epoll.h>
-#include <iostream>
 #include <vector>
-#include <unordered_map>
 #include <memory>
 
 #include "timer/TimerManager.h"

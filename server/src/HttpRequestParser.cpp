@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <iostream>
 
+#include "config/Configs.h"
 #include "http/HttpRequestParser.h"
 #include "http/HttpRequest.h"
 #include "utils/Utils.h"
@@ -150,7 +151,9 @@ HttpRequestParser::parseHeaderLine(char *temp_buffer, HttpRequest &http_request)
             http_request.http_content_length = std::stoi(value_s);
         } 
     } else {
+        #ifdef DEBUG_VERSION
         cout << "HttpRequestParser: Unsupported header: " << key_s << endl;
+        #endif
     }
 
     return No_Request;
@@ -215,7 +218,9 @@ HttpRequestParser::parseRequest(char *buffer, int buffer_size,
     if (line_state == Line_Bad) {
         return Bad_Request;
     } else if (line_state == Line_Overflow) {
+        #ifdef ENABLE_LOG
         cout << "HttpRequestParser: Line Overflow!" << endl;
+        #endif
         return Bad_Request;
     } else {
         return No_Request;

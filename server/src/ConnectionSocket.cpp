@@ -17,8 +17,7 @@ bool ConnectionSocket::setTimer(const time_t timeout) {
         cout << "ConnectionSocket: Timer existed, remove it first." << endl;
         return false;
     }
-    const auto& new_timer = server.createTimer(timeout, getSocketFd());
-    timer = new_timer;
+    timer = server.createTimer(timeout, getSocketFd());
     return true;
 }
 
@@ -32,10 +31,11 @@ void ConnectionSocket::removeTimer() {
 }
 
 void ConnectionSocket::expireHandler() {
+    int socket_fd = getSocketFd();
     // 关闭 socket 文件符
     Socket::close();
     // 通知服务器删除文件描述符
-    server.removeConnection(getSocketFd());
+    server.removeConnection(socket_fd);
 }
 
 

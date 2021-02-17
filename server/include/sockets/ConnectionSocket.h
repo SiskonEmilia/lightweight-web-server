@@ -1,6 +1,9 @@
 #pragma once
 
 #include <memory>
+#ifdef DEBUG_VERSION
+#include <iostream>
+#endif
 
 #include "sockets/Socket.h"
 #include "http/HttpData.h"
@@ -40,5 +43,10 @@ public:
     /**
      * @brief 析构时移除计时器，基类自动关闭 socket_fd
     */
-    ~ConnectionSocket() {}
+    ~ConnectionSocket() {
+        close();
+        #ifdef DEBUG_VERSION
+        std::cout << "Connection removed: " << getSocketFd() << std::endl;
+        #endif
+    }
 };

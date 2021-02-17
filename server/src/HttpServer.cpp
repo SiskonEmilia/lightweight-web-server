@@ -1,6 +1,7 @@
 #include <iostream>
 #include <algorithm>
 
+#include "config/Configs.h"
 #include "http/HttpServer.h"
 #include "timer/HttpTimer.h"
 #include "sockets/ConnectionSocket.h"
@@ -22,18 +23,29 @@ int HttpServer::sendLoop(const int socket_fd, const char* buffer, int size_to_se
     int sent_size = -1;
     while (size_to_send > 0) {
         sent_size = send(socket_fd, buffer, size_to_send, 0);
+        #ifdef DEBUG_VERSION
+        cout << sent_size << endl;
+        #endif
         if (sent_size > 0) {
             sent_size_sum += sent_size;
             size_to_send -= sent_size;
             buffer += sent_size;
         } else if (sent_size == -1) {
             if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
+                #ifdef ENABLE_LOG
+                cout << "HttpServer: Known error occurred while sending. Errno: " << errno << endl;
+                #endif
                 return sent_size_sum;
             }
+            #ifdef ENABLE_LOG
             cout << "HttpServer: Unknown error occurred while sending. Errno: " << errno << endl;
-            return sent_size_sum; 
+            #endif
+            return -2; 
         } else {
-            return sent_size_sum;
+            #ifdef ENABLE_LOG
+            cout << "HttpServer: Connection closed by peer while sending. " << errno << endl;
+            #endif
+            return -2;
         }
     }
     return sent_size_sum;
@@ -50,11 +62,15 @@ void HttpServer::handleSending(std::shared_ptr<ConnectionSocket> connection) {
             const std::string &buffer = response.pourHeader();
 
             sent_size = sendLoop(connection->getSocketFd(), buffer.c_str() + sent_size, buffer.size() - sent_size);
+            if (sent_size == 0 || sent_size == -2) {
+                removeConnection(connection->getSocketFd());
+                return;
+            }
 
             response.addSentSize(sent_size);
             if (response.getSentSize() < response.pourHeader().size()) {
-                epoll_manager->modFd(connection->getSocketFd(), EpollManager::Single_Time_Send_Event);
                 connection->setTimer(3000);
+                epoll_manager->modFd(connection->getSocketFd(), EpollManager::Single_Time_Send_Event);
                 return;
             }
         }
@@ -65,23 +81,35 @@ void HttpServer::handleSending(std::shared_ptr<ConnectionSocket> connection) {
                 if (file_ptr && file_ptr->getPtr() != nullptr) {
                     sent_size = sendLoop(connection->getSocketFd(), static_cast<const char *>(file_ptr->getPtr()) + sent_size,
                         response.getBodySize() - sent_size);
+                    if (sent_size == 0 || sent_size == -2) {
+                        removeConnection(connection->getSocketFd());
+                        return;
+                    }
                 } else {
+                    #ifdef ENABLE_LOG
                     cout << "HttpServer: Failed to map file to memory." << endl;
+                    #endif
                     response.setKeepAlive(false);
                 }
             } else {
                 auto buffer_ptr = response.pourBuffer();
                 if (buffer_ptr) {
                     sent_size = sendLoop(connection->getSocketFd(), buffer_ptr.get() + sent_size, response.getBodySize() - sent_size);
+                    if (sent_size == 0 || sent_size == -2) {
+                        removeConnection(connection->getSocketFd());
+                        return;
+                    }
                 } else {
+                    #ifdef ENABLE_LOG
                     cout << "HttpServer: Failed to get buffer from response manager." << endl;
+                    #endif
                     response.setKeepAlive(false);
                 }
             }
             response.addSentSize(sent_size);
             if (response.getBufferSentSize() < response.getBodySize()) {
-                epoll_manager->modFd(connection->getSocketFd(), EpollManager::Single_Time_Send_Event);
                 connection->setTimer(3000);
+                epoll_manager->modFd(connection->getSocketFd(), EpollManager::Single_Time_Send_Event);
                 return;
             }
         }
@@ -91,8 +119,8 @@ void HttpServer::handleSending(std::shared_ptr<ConnectionSocket> connection) {
     if (response.getKeepAlive()) {
         request.clear();
         response.clear();
-        epoll_manager->modFd(connection->getSocketFd(), EpollManager::Single_Time_Accept_Event);
         connection->setTimer(20000);
+        epoll_manager->modFd(connection->getSocketFd(), EpollManager::Single_Time_Accept_Event);
     } else {
         removeConnection(connection->getSocketFd());
     }
@@ -100,9 +128,12 @@ void HttpServer::handleSending(std::shared_ptr<ConnectionSocket> connection) {
 
 std::shared_ptr<HttpTimer> 
 HttpServer::createTimer(int timeout, int socket_fd) {
+    MutexLockGuard guard(this->connection_map_mutex);
     auto iter = connection_map.find(socket_fd);
     if (iter == connection_map.end()) {
+        #ifdef ENABLE_LOG
         cout << "HttpServer: Trying to create timer for the connection not existed." << endl;
+        #endif
         return std::shared_ptr<HttpTimer>();
     }
     std::shared_ptr<HttpTimer> timer(new HttpTimer(timeout, iter->second));
@@ -113,14 +144,27 @@ HttpServer::createTimer(int timeout, int socket_fd) {
 void HttpServer::handleConnection(int timeout) {
     std::shared_ptr<ConnectionSocket> connection(new ConnectionSocket(*this));
     while(listen_socket.accept(*connection) > 0) {
+        {
+            MutexLockGuard fd_guard(this->fd_cnt_mutex);
+            if (--valid_fd_cnt < 0) {
+                ++valid_fd_cnt;
+                connection->close();
+                continue;
+            }
+        }
         connection->setNonBlocking();
         int ret = epoll_manager->addFd(connection->getSocketFd(), EpollManager::Single_Time_Accept_Event);
         if (ret < 0) {
+            #ifdef ENABLE_LOG 
             // 添加事件失败，打印错误报告
             cout << "HttpServer: Failed to handle connection for socket fd: " 
                  << connection->getSocketFd() << endl;
+            #endif
         } else {
-            connection_map[connection->getSocketFd()] = connection;
+            {
+                MutexLockGuard guard(this->connection_map_mutex);
+                connection_map[connection->getSocketFd()] = connection;
+            }
             connection->setTimer(timeout);
         }
         std::shared_ptr<ConnectionSocket> new_connection(new ConnectionSocket(*this));
@@ -129,19 +173,26 @@ void HttpServer::handleConnection(int timeout) {
 }
 
 void HttpServer::removeConnection(const int socket_fd) {
+    MutexLockGuard guard(this->connection_map_mutex);
     auto iter = connection_map.find(socket_fd);
     if (iter == connection_map.end()) {
+        #ifdef ENABLE_LOG
         cout << "HttpServer: Failed to find connection to remove. Socket_fd: " << socket_fd << endl;
-    } else {
-        iter->second->removeTimer();
-        connection_map.erase(iter);
-        epoll_manager->delFd(socket_fd);
+        #endif
+        return;
     }
+    iter->second->removeTimer();
+    epoll_manager->delFd(socket_fd);
+    connection_map.erase(iter);
+    MutexLockGuard fd_guard(this->fd_cnt_mutex);
+    ++valid_fd_cnt;
 }
 
 void HttpServer::handleRequest(std::shared_ptr<ConnectionSocket> connection) {
     // 注意 buffer 要预留 \0 的位置
+    #ifdef ENABLE_LOG
     cout << "HttpServer: Handling Request with socket_fd: " << connection->getSocketFd() << endl;
+    #endif
     char buffer[buffer_size + 1];
     bzero(buffer, buffer_size + 1);
 
@@ -180,16 +231,18 @@ void HttpServer::handleRequest(std::shared_ptr<ConnectionSocket> connection) {
                     break;
                 } else {
                     // Wait for following msg
-                    epoll_manager->modFd(connection->getSocketFd(), EpollManager::Single_Time_Accept_Event);
                     connection->setTimer(3000);
+                    epoll_manager->modFd(connection->getSocketFd(), EpollManager::Single_Time_Accept_Event);
                     break;
                 }
             } else if (errno == EWOULDBLOCK) {
-                epoll_manager->modFd(connection->getSocketFd(), EpollManager::Single_Time_Accept_Event);
                 connection->setTimer(3000);
+                epoll_manager->modFd(connection->getSocketFd(), EpollManager::Single_Time_Accept_Event);
                 break;
             } else {
+                #ifdef ENABLE_LOG
                 cout << "HttpServer: Unknown ERRNO: " << errno << endl; 
+                #endif
                 removeConnection(connection->getSocketFd());
             }
             break;
@@ -225,13 +278,30 @@ void HttpServer::run(int thread_num, int max_queue_size, int timeout) {
     for (; ; ) {
         // 常引用临时变量
         const auto& requests = epoll_manager->poll(*this, timeout);
+        #ifdef ENABLE_LOG
+        cout << "HttpServer: Pool returned: " << requests.size() << endl;
+        #endif
         // 遍历所有需要处理的连接的 socket_fd
+        auto connection_iter = connection_map.end();
         for (int socket_fd : requests) {
-            auto connection_ptr = connection_map[socket_fd];
+            MutexLockGuard guard(this->connection_map_mutex);
+            if ((connection_iter = connection_map.find(socket_fd)) == connection_map.end()) {
+                #ifdef ENABLE_LOG
+                cout << "HttpServer: Epoll returned removed connection." << endl;
+                #endif
+                continue;
+            }
+            auto &connection_ptr = connection_iter->second;
             connection_ptr->removeTimer();
             if (connection_ptr->http_data.response.getSentSize() == 0) {
+                #ifdef DEBUG_VERSION
+                cout << "socket: " << connection_ptr->getSocketFd() << " now handling request." << endl;
+                #endif
                 thread_pool.append(connection_ptr, std::bind(&HttpServer::handleRequest, this, std::placeholders::_1));
             } else {
+                #ifdef DEBUG_VERSION
+                cout << "socket: " << connection_ptr->getSocketFd() << " now handling response." << endl;
+                #endif
                 thread_pool.append(connection_ptr, std::bind(&HttpServer::handleSending, this, std::placeholders::_1));
             }
         }

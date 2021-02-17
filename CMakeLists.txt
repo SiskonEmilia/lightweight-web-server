@@ -3,7 +3,7 @@ project(lserver)
 
 set(CMAKE_CXX_STANDARD 11)
 
-set(CXX_FLAGS "-Wall -std=c++11 -lpthread -O3 -g")
+set(CXX_FLAGS "-Wall -std=c++11 -pthread -O3 -g")
 
 link_libraries(pthread)
 

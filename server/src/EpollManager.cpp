@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include "config/Configs.h"
 #include "epoll/EpollManager.h"
 #include "http/HttpServer.h"
 #include "utils/Utils.h"
@@ -9,7 +10,7 @@ using std::cerr;
 using std::endl;
 
 /* 初始化静态常量 */
-const int EpollManager::Max_Events = 8192;
+const int EpollManager::Max_Events = 16384;
 const __uint32_t EpollManager::Single_Time_Accept_Event = (EPOLLIN | EPOLLET | EPOLLONESHOT);
 const __uint32_t EpollManager::Multi_Times_Accept_Event = (EPOLLIN | EPOLLET);
 const __uint32_t EpollManager::Single_Time_Send_Event = (EPOLLOUT | EPOLLET | EPOLLONESHOT);
@@ -44,6 +45,7 @@ int EpollManager::init(int max_events) {
              << "EpollManager: Set to default value: " << Max_Events << endl;
         epoll_max_events = Max_Events;
     } else {
+        cout << "EpollManager: Epoll max events: " << max_events << endl;
         epoll_max_events = max_events;
     }
     epoll_fd = epoll_create(epoll_max_events);
@@ -65,11 +67,14 @@ int EpollManager::addFd(int socket_fd, __uint32_t events) {
         return -1;
     }
     epoll_event event;
-    event.events = Multi_Times_Accept_Event;
+    bzero(&event, sizeof(event));
+    event.events = events;
     event.data.fd = socket_fd;
     int ret = epoll_ctl(epoll_fd, EPOLL_CTL_ADD, socket_fd, &event);
     if (ret < 0) {
+        #ifdef ENABLE_LOG
         cout << "EpollManager: Failed to add socket_fd to epoll instance." << endl;
+        #endif
         return -1;
     }
     return 0;
@@ -81,11 +86,14 @@ int EpollManager::modFd(int socket_fd, __uint32_t events) {
         return -1;
     }
     epoll_event event;
+    bzero(&event, sizeof(event));
     event.events = events;
     event.data.fd = socket_fd;
     int ret = epoll_ctl(epoll_fd, EPOLL_CTL_MOD, socket_fd, &event);
     if (ret < 0) {
+        #ifdef ENABLE_LOG
         cout << "EpollManager: Failed to modify epoll instance, all data remained unchanged." << endl;
+        #endif
         return -1;
     }
     return 0;
@@ -102,7 +110,9 @@ int EpollManager::delFd(int socket_fd) {
     int ret = epoll_ctl(epoll_fd, EPOLL_CTL_DEL, socket_fd, nullptr);
     #endif
     if (ret < 0) {
+        #ifdef ENABLE_LOG
         cout << "EpollManager: Failed to delete socket inside epoll instance, all data remained unchanged." << endl;
+        #endif
         return -1;
     }
     return 0;

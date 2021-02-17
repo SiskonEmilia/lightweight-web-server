@@ -2,12 +2,15 @@
 
 #include <vector>
 #include <regex>
+#include <unistd.h>
+#include <iostream>
 
 #include "sockets/ListenSocket.h"
 #include "thread/ThreadPool.h"
 #include "epoll/EpollManager.h"
 #include "timer/TimerManager.h"
 #include "http/HttpData.h"
+#include "thread/MutexLock.h"
 
 class HttpTimer;
 class ConnectionSocket;
@@ -27,9 +30,10 @@ public:
 
 private:
     enum {
-        Default_Buffer_Size = 4096
+        Default_Buffer_Size = 1024
     };
     int buffer_size;
+    int valid_fd_cnt;
     // 服务器持有的监听 Socket
     ListenSocket listen_socket;
     // 计时器管理器
@@ -40,6 +44,10 @@ private:
     std::unordered_map<int, std::shared_ptr<ConnectionSocket>> connection_map;
     // GET 方法的匹配规则表
     std::vector<ServeRule> get_rules;
+    // 链接映射的互斥锁
+    MutexLock connection_map_mutex;
+    // 可用文件描述符数量的互斥锁
+    MutexLock fd_cnt_mutex;
     
     /**
      * @brief 默认的回调函数，发送 404 响应
@@ -59,7 +67,17 @@ public:
         : buffer_size(buffer_size), listen_socket(port, ip), timer_manager(), 
           epoll_manager(EpollManager::getInstance()), connection_map() {
         if (buffer_size <= 0) this->buffer_size = Default_Buffer_Size;
-        epoll_manager->init(1024);
+        epoll_manager->init(16384);
+        // 获取可用文件描述符数量
+        valid_fd_cnt = sysconf(_SC_OPEN_MAX);
+        if (valid_fd_cnt < 0) {
+            valid_fd_cnt = 1024;
+        }
+        valid_fd_cnt = (valid_fd_cnt >> 1) - 16;
+        if (valid_fd_cnt < 0) {
+            std::cout << "HttpServer: Too few sockets number." << std::endl;
+            exit(-1);
+        } 
     }
 
     /**

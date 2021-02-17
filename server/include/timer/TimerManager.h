@@ -19,7 +19,7 @@ public:
     */
     void append(Timer::TimerSPtr timer) {
         // 由于多个线程都有可能重置定时器，因此需要加锁
-        MutexLockGuard(this->mutex);
+        MutexLockGuard guard(this->mutex);
         timer_min_heap.push(timer);
     }
 

@@ -5,10 +5,9 @@
 #include <unordered_map>
 #include <string>
 
+#include "config/Configs.h"
 #include "http/HttpRequestParser.h"
 #include "utils/Utils.h"
-
-// #define DEBUG_MODE
 
 /**
  * 关于如何判定请求数据是否完整：
@@ -25,14 +24,14 @@
 */
 
 
-#ifdef DEBUG_MODE
+#ifdef DEBUG_VERSION
 std::ostream &operator<<(std::ostream &, const HttpRequest &);
 #endif
 
 class HttpRequest {
     // enum hack
     enum {
-        Default_Buffer_Size = 4096
+        Default_Buffer_Size = 1024
     };
 
     // 临时缓冲区的大小

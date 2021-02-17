@@ -18,7 +18,7 @@ const std::unordered_map<std::string, HttpRequest::HTTP_HEADER> HttpRequest::hea
 HttpRequestParser::HTTP_CODE
 HttpRequest::parseRequest(char *buffer, int buffer_size) {
 
-    #ifdef DEBUG_MODE
+    #ifdef DEBUG_VERSION
     std::cout << "Buffer_size: " << buffer_size << std::endl;
     buffer[buffer_size] = '\0';
     std::cout << "Buffer:\n" << buffer << std::endl;
@@ -29,7 +29,7 @@ HttpRequest::parseRequest(char *buffer, int buffer_size) {
         HttpRequestParser::parseRequest(buffer, buffer_size, getBuffer(), buffer_index, this->buffer_size, *this);
     if (ret_code != HttpRequestParser::HTTP_CODE::No_Request) {
         // 已经完成解析，不需要再持有临时缓冲区
-        #ifdef DEBUG_MODE
+        #ifdef DEBUG_VERSION
         std::cout << "Finished" << std::endl;
         std::cout << *this << std::endl;
         #endif
@@ -46,11 +46,12 @@ void HttpRequest::clear() {
     http_path.clear();
     http_query.clear();
     http_headers.clear();
+    temp_buffer.reset();
     http_content_length = 0;
     buffer_index = 0;
 }
 
-#ifdef DEBUG_MODE
+#ifdef DEBUG_VERSION
 std::ostream &operator<<(std::ostream &os, const HttpRequest &http_request) {
     std::stringstream ss;
     ss << "Parsed Http_Request Information\n"

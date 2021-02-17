@@ -8,6 +8,7 @@
 #include <iostream>
 #include <pthread.h>
 #include <sys/prctl.h>
+#include <csignal>
 
 #include "utils/Uncopyable.h"
 #include "thread/MutexLock.h"
@@ -49,7 +50,7 @@ class ThreadPool {
 
 public:
     enum {
-        Default_Thread_Num = 4,
+        Default_Thread_Num = 8,
         Max_Thread_Num = 1024,
         Max_Queue_Size = 16384
     };
@@ -160,6 +161,11 @@ void *ThreadPool<T>::worker(void *args) {
         return NULL;
     // 设置线程名
     prctl(PR_SET_NAME,"EventLoopThread");
+
+    sigset_t cur_set;
+    sigaddset(&cur_set, SIGPIPE);
+    sigaddset(&cur_set, SIGINT);
+    pthread_sigmask(SIG_BLOCK, &cur_set, nullptr);
 
     // 执行 EventLoop
     pool->run();

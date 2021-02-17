@@ -73,6 +73,9 @@ int ListenSocket::accept(ConnectionSocket &connection) const {
     int connection_fd = ::accept(getSocketFd(), nullptr, nullptr);
     if (connection_fd > 0) {
         connection.setSocketFd(connection_fd);
+    } else if (errno == EMFILE) {
+        cout << "ListenSocket: YOU'VE RUN OUT OF FD!" << endl;
     }
+
     return connection_fd;
 }
