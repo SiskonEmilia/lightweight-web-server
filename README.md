@@ -86,7 +86,7 @@ server.Get(your_regex, your_callback);
 
 ## 版本日志
 
-### version 0.1.1 Zhongli 压力测试
+### version 0.1.1: Zhongli 压力测试
 
 *Solid as stones.*
 
