@@ -28,4 +28,15 @@ public:
      * 直到堆顶为合法的未超时计时器
     */
     void checkExpire();
+
+    /**
+     * @brief 获取当前堆顶过期剩余时间
+     * @return [time_t] 当前堆顶过期剩余时间，如果已经有过期的计时器，返回 0，如果没有计时器，返回 -1
+    */
+    int getTimeout() {
+        // 此处不更新系统时间，延迟依旧可以接受
+        if (timer_min_heap.empty()) return -1;
+        if (timer_min_heap.top()->getExpireTime() > Timer::current_time) return 0;
+        else return Timer::current_time - timer_min_heap.top()->getExpireTime();
+    }
 };

@@ -12,6 +12,7 @@
     - [编译方法](#编译方法)
     - [如何使用本库创建服务器](#如何使用本库创建服务器)
   - [版本日志](#版本日志)
+    - [version 0.1.2 *<-developing*](#version-012--developing)
     - [version 0.1.1: Zhongli 压力测试](#version-011-zhongli-压力测试)
     - [version 0.1.0: Venti 静态网页服务器](#version-010-venti-静态网页服务器)
     - [version 0.0.0: ATRI 技术验证](#version-000-atri-技术验证)
@@ -85,6 +86,11 @@ server.Get(your_regex, your_callback);
 
 
 ## 版本日志
+
+### version 0.1.2 *<-developing*
+
+- **更新内容**
+  - 添加了自适应 Epoll 超时机制，从而尽可能及时处理计时器超时事件
 
 ### version 0.1.1: Zhongli 压力测试
 

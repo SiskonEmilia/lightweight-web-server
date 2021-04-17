@@ -276,8 +276,10 @@ void HttpServer::run(int thread_num, int max_queue_size, int timeout) {
         exit(-1);
     }
     for (; ; ) {
+        // 自适应 Epoll 超时，尽量确保超时计时器得到及时响应
+        const auto adaptive_timeout = timer_manager.getTimeout();
         // 常引用临时变量
-        const auto& requests = epoll_manager->poll(*this, timeout);
+        const auto& requests = epoll_manager->poll(*this, adaptive_timeout < 0 ? timeout : adaptive_timeout);
         #ifdef ENABLE_LOG
         cout << "HttpServer: Pool returned: " << requests.size() << endl;
         #endif
